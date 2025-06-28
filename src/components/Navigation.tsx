@@ -8,7 +8,11 @@ import {
   useTheme, 
   useMediaQuery,
   Typography,
-  Container
+  Container,
+  Avatar,
+  Menu,
+  MenuItem,
+  IconButton
 } from '@mui/material';
 import { 
   Home, 
@@ -16,15 +20,21 @@ import {
   Newspaper, 
   AttachMoney, 
   Star, 
-  Settings 
+  Settings,
+  AccountCircle,
+  Logout
 } from '@mui/icons-material';
 import ThemeToggle from "@/components/ThemeToggle";
+import CustomerTypeIndicator from "@/components/CustomerTypeIndicator";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isAuthenticated, user, logout } = useAuth();
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
@@ -32,31 +42,30 @@ const Navigation = () => {
     { path: '/news', label: 'News', icon: Newspaper },
     { path: '/currency', label: 'Currency', icon: AttachMoney },
     { path: '/wishlist', label: 'Watchlist', icon: Star },
-    { path: '/admin', label: 'Admin', icon: Settings },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ];
+
+  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleClose();
+  };
 
   return (
     <AppBar position="sticky" elevation={0} sx={{ backdropFilter: 'blur(10px)' }}>
       <Container maxWidth="lg">
         <Toolbar sx={{ px: { xs: 0 } }}>
           {/* Logo */}
-          <Typography 
-            variant="h6" 
-            component={Link} 
-            to="/" 
-            sx={{ 
-              textDecoration: 'none', 
-              color: 'inherit', 
-              fontWeight: 'bold',
-              mr: 4,
-              background: 'linear-gradient(45deg, #667eea, #764ba2)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}
-          >
-            MarketNow
-          </Typography>
+          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', mr: 4, textDecoration: 'none' }}>
+            <img src="/logo.png" alt="MarketNow Logo" style={{ height: 48, width: 'auto', marginRight: 8 }} />
+          </Box>
 
           {/* Navigation Items */}
           <Box sx={{ flexGrow: 1, display: 'flex', gap: 1 }}>
@@ -103,8 +112,92 @@ const Navigation = () => {
             })}
           </Box>
 
+          {/* Customer Type Indicator */}
+          <Box sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
+            <CustomerTypeIndicator size="small" showLabel={false} />
+          </Box>
+
           {/* Theme Toggle */}
           <ThemeToggle />
+
+          {/* Authentication Section */}
+          <Box sx={{ ml: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isAuthenticated ? (
+              <>
+                <IconButton
+                  onClick={handleMenu}
+                  sx={{ color: 'inherit' }}
+                >
+                  {user?.avatar ? (
+                    <Avatar src={user.avatar} sx={{ width: 32, height: 32 }} />
+                  ) : (
+                    <AccountCircle />
+                  )}
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleClose}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                >
+                  <MenuItem disabled>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        {user?.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {user?.email}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem component={Link} to="/settings" onClick={handleClose}>
+                    Settings
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>
+                    <Logout sx={{ mr: 1 }} />
+                    Logout
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <>
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant="outlined"
+                  size="small"
+                  sx={{ 
+                    textTransform: 'none',
+                    display: { xs: 'none', sm: 'block' }
+                  }}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  component={Link}
+                  to="/signup"
+                  variant="contained"
+                  size="small"
+                  sx={{ 
+                    textTransform: 'none',
+                    background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #5a6fd8, #6a4190)'
+                    }
+                  }}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
+          </Box>
         </Toolbar>
       </Container>
     </AppBar>

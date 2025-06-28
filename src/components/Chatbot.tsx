@@ -23,17 +23,40 @@ const Chatbot = () => {
     { type: 'bot', text: 'Hello! How can I help you with your financial needs today?' }
   ]);
 
+  // Simulate AI summarization
+  const aiSummarize = (text: string) => {
+    // In real app, call backend AI API here
+    return 'AI Summary: ' + (text.length > 120 ? text.slice(0, 120) + '...' : text);
+  };
+
+  // Allow external trigger for AI summarizer
+  (window as any).marketNowChatbotSummarize = (news: { headline: string, summary: string }) => {
+    setIsOpen(true);
+    setMessages(prev => [
+      ...prev,
+      { type: 'user', text: `Summarize this news: ${news.headline}\n${news.summary}` },
+      { type: 'bot', text: aiSummarize(news.summary) }
+    ]);
+  };
+
   const handleSendMessage = () => {
     if (message.trim()) {
       setMessages([...messages, { type: 'user', text: message }]);
       setMessage('');
-      
       // Simulate bot response
       setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          type: 'bot', 
-          text: 'Thank you for your question! I\'m here to help with stock market, news, and currency exchange information.' 
-        }]);
+        // If user asks for summary
+        if (/summari[sz]e/i.test(message)) {
+          setMessages(prev => [
+            ...prev,
+            { type: 'bot', text: aiSummarize(message) }
+          ]);
+        } else {
+          setMessages(prev => [...prev, {
+            type: 'bot',
+            text: 'Thank you for your question! I\'m here to help with stock market, news, and currency exchange information.'
+          }]);
+        }
       }, 1000);
     }
   };

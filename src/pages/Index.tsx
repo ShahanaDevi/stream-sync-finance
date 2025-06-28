@@ -35,6 +35,8 @@ import {
 } from '@mui/icons-material';
 import { Link } from "react-router-dom";
 import Navigation from '../components/Navigation';
+import CustomerTypeIndicator from '@/components/CustomerTypeIndicator';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   // Mock data for demonstration
@@ -60,6 +62,8 @@ const Index = () => {
     { title: "Cryptocurrency market shows strong recovery", source: "CoinDesk", time: "10 hours ago" },
   ];
 
+  const { isAuthenticated } = useAuth();
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Navigation />
@@ -67,6 +71,9 @@ const Index = () => {
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Hero Section */}
         <Box sx={{ mb: 6, textAlign: 'center' }} className="fade-in">
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <CustomerTypeIndicator size="large" showLabel={true} />
+          </Box>
           <Typography variant="h1" component="h1" sx={{ mb: 2, fontWeight: 'bold' }}>
             MarketNow
           </Typography>
@@ -74,12 +81,41 @@ const Index = () => {
             Your comprehensive financial dashboard for real-time market data, news, and currency tracking
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="contained" size="large" startIcon={<BarChart />}>
-              Explore Markets
-            </Button>
-            <Button variant="outlined" size="large" startIcon={<Star />}>
-              Start Watchlist
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Button variant="contained" size="large" startIcon={<BarChart />}>
+                  Explore Markets
+                </Button>
+                <Button variant="outlined" size="large" startIcon={<Star />}>
+                  Start Watchlist
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="contained" 
+                  size="large" 
+                  component={Link}
+                  to="/signup"
+                  sx={{
+                    background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #5a6fd8, #6a4190)'
+                    }
+                  }}
+                >
+                  Get Started
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  size="large" 
+                  component={Link}
+                  to="/login"
+                >
+                  Sign In
+                </Button>
+              </>
+            )}
           </Box>
         </Box>
 

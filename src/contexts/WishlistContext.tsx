@@ -1,16 +1,40 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+
+interface StockData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
+interface NewsData {
+  id: number;
+  title: string;
+  description: string;
+  url: string;
+  publishedAt: string;
+}
+
+interface CurrencyData {
+  pair: string;
+  rate: number;
+  change: number;
+  changePercent: number;
+}
+
+type WishlistDataType = StockData | NewsData | CurrencyData;
 
 interface WishlistItem {
   id: string;
   type: 'stock' | 'news' | 'currency';
-  data: any;
+  data: WishlistDataType;
   addedAt: string;
 }
 
 interface WishlistContextType {
   wishlistItems: WishlistItem[];
-  addToWishlist: (type: 'stock' | 'news' | 'currency', data: any) => void;
+  addToWishlist: (type: 'stock' | 'news' | 'currency', data: WishlistDataType) => void;
   removeFromWishlist: (id: string) => void;
   isInWishlist: (id: string) => boolean;
 }
@@ -39,8 +63,8 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('wishlist', JSON.stringify(wishlistItems));
   }, [wishlistItems]);
 
-  const addToWishlist = (type: 'stock' | 'news' | 'currency', data: any) => {
-    const id = type === 'stock' ? data.symbol : type === 'news' ? data.id.toString() : data.pair;
+  const addToWishlist = (type: 'stock' | 'news' | 'currency', data: WishlistDataType) => {
+    const id = type === 'stock' ? (data as StockData).symbol : type === 'news' ? (data as NewsData).id.toString() : (data as CurrencyData).pair;
     const newItem: WishlistItem = {
       id,
       type,

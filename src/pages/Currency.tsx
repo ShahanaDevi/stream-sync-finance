@@ -1,372 +1,255 @@
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Button, 
-  Chip, 
-  TextField, 
-  Box, 
-  Container, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper,
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Container,
+  TextField,
+  Button,
+  Grid,
+  Divider,
   IconButton,
-  InputAdornment,
-  Alert,
-  Divider
+  Chip
 } from '@mui/material';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Search, 
-  Star, 
-  StarBorder,
-  Filter, 
-  AttachMoney,
-  Favorite,
-  FavoriteBorder,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon
+import {
+  SwapHoriz,
+  ArrowDownward,
+  ArrowUpward,
+  MonetizationOn
 } from '@mui/icons-material';
 import Navigation from "@/components/Navigation";
 import { useWishlist } from "@/contexts/WishlistContext";
 
+const currencyPairs = [
+  { pair: 'EUR/USD', base: 'EUR', quote: 'USD' },
+  { pair: 'USD/JPY', base: 'USD', quote: 'JPY' },
+  { pair: 'USD/CHF', base: 'USD', quote: 'CHF' },
+  { pair: 'GBP/USD', base: 'GBP', quote: 'USD' },
+  { pair: 'AUD/USD', base: 'AUD', quote: 'USD' },
+  { pair: 'EUR/GBP', base: 'EUR', quote: 'GBP' },
+];
+
+const currencyData = [
+  { code: "USD", name: "US Dollar", rate: 1.0000, change: 0.0000, changePercent: 0.00, symbol: "$" },
+  { code: "EUR", name: "Euro", rate: 0.9234, change: +0.0023, changePercent: +0.25, symbol: "€" },
+  { code: "GBP", name: "British Pound", rate: 0.7891, change: -0.0012, changePercent: -0.15, symbol: "£" },
+  { code: "JPY", name: "Japanese Yen", rate: 148.25, change: +0.45, changePercent: +0.30, symbol: "¥" },
+  { code: "CHF", name: "Swiss Franc", rate: 0.8567, change: -0.0012, changePercent: -0.14, symbol: "CHF" },
+  { code: "AUD", name: "Australian Dollar", rate: 1.5234, change: +0.0078, changePercent: +0.51, symbol: "A$" },
+];
+
+const getPairRate = (base, quote) => {
+  const baseObj = currencyData.find(c => c.code === base);
+  const quoteObj = currencyData.find(c => c.code === quote);
+  if (!baseObj || !quoteObj) return null;
+  // All rates are relative to USD
+  // base/quote = (base/USD) / (quote/USD)
+  return (baseObj.rate / quoteObj.rate);
+};
+
+const getPairChange = (base, quote) => {
+  // Approximate: use base's change percent minus quote's change percent
+  const baseObj = currencyData.find(c => c.code === base);
+  const quoteObj = currencyData.find(c => c.code === quote);
+  if (!baseObj || !quoteObj) return 0;
+  return baseObj.changePercent - quoteObj.changePercent;
+};
+
 const Currency = () => {
-  const [searchTerm, setSearchTerm] = useState('');
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
-  const currencyData = [
-    { 
-      code: "USD", 
-      name: "US Dollar", 
-      rate: 1.0000, 
-      change: 0.0000, 
-      changePercent: 0.00, 
-      symbol: "$",
-      isBase: true 
-    },
-    { 
-      code: "EUR", 
-      name: "Euro", 
-      rate: 0.9234, 
-      change: +0.0023, 
-      changePercent: +0.25, 
-      symbol: "€" 
-    },
-    { 
-      code: "GBP", 
-      name: "British Pound", 
-      rate: 0.7891, 
-      change: -0.0012, 
-      changePercent: -0.15, 
-      symbol: "£" 
-    },
-    { 
-      code: "JPY", 
-      name: "Japanese Yen", 
-      rate: 148.25, 
-      change: +0.45, 
-      changePercent: +0.30, 
-      symbol: "¥" 
-    },
-    { 
-      code: "CAD", 
-      name: "Canadian Dollar", 
-      rate: 1.3456, 
-      change: -0.0034, 
-      changePercent: -0.25, 
-      symbol: "C$" 
-    },
-    { 
-      code: "AUD", 
-      name: "Australian Dollar", 
-      rate: 1.5234, 
-      change: +0.0078, 
-      changePercent: +0.51, 
-      symbol: "A$" 
-    },
-    { 
-      code: "CHF", 
-      name: "Swiss Franc", 
-      rate: 0.8567, 
-      change: -0.0012, 
-      changePercent: -0.14, 
-      symbol: "CHF" 
-    },
-    { 
-      code: "CNY", 
-      name: "Chinese Yuan", 
-      rate: 7.2345, 
-      change: +0.0234, 
-      changePercent: +0.32, 
-      symbol: "¥" 
-    },
-    { 
-      code: "INR", 
-      name: "Indian Rupee", 
-      rate: 83.1234, 
-      change: -0.2345, 
-      changePercent: -0.28, 
-      symbol: "₹" 
-    },
-    { 
-      code: "BRL", 
-      name: "Brazilian Real", 
-      rate: 4.9234, 
-      change: +0.0234, 
-      changePercent: +0.48, 
-      symbol: "R$" 
-    }
-  ];
+  // Converter state
+  const [fromAmount, setFromAmount] = useState(1000);
+  const [fromCurrency, setFromCurrency] = useState('USD');
+  const [toCurrency, setToCurrency] = useState('EUR');
+  const [lastUpdated] = useState('2 minutes ago');
 
-  const liborRate = {
-    rate: 5.33,
-    change: +0.02,
-    changePercent: +0.38,
-    lastUpdate: "2024-01-15 15:30:00"
-  };
+  // Calculate conversion
+  const fromObj = currencyData.find(c => c.code === fromCurrency);
+  const toObj = currencyData.find(c => c.code === toCurrency);
+  let toAmount = '';
+  let rate = 1;
+  if (fromObj && toObj) {
+    // All rates are relative to USD
+    // from/to = (from/USD) / (to/USD)
+    rate = fromObj.rate / toObj.rate;
+    toAmount = (fromAmount * rate).toFixed(4);
+  }
 
-  const filteredCurrencies = currencyData.filter(currency => 
-    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    currency.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleAddToWishlist = (currency) => {
-    if (isInWishlist(currency.code)) {
-      removeFromWishlist(currency.code);
-    } else {
-      addToWishlist('currency', currency);
-    }
+  // Swap currencies
+  const handleSwap = () => {
+    setFromCurrency(toCurrency);
+    setToCurrency(fromCurrency);
+    setFromAmount(Number(toAmount));
   };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Navigation />
-      
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Currency Exchange
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Real-time exchange rates and currency data
-          </Typography>
-        </Box>
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
+          Currencies & Forex
+        </Typography>
+        <Typography variant="subtitle1" sx={{ mb: 3, color: 'text.secondary' }}>
+          Live exchange rates and currency conversion
+        </Typography>
 
-        {/* LIBOR Rate Alert */}
-        <Alert 
-          severity="info" 
-          sx={{ mb: 4 }}
-          icon={<AttachMoney />}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                LIBOR Rate: {liborRate.rate}%
-              </Typography>
-              <Typography variant="body2">
-                {liborRate.change >= 0 ? '+' : ''}{liborRate.change} ({liborRate.changePercent >= 0 ? '+' : ''}{liborRate.changePercent}%)
+        {/* Currency Converter */}
+        <Card sx={{ mb: 4, bgcolor: 'background.paper', borderRadius: 3, boxShadow: 6, p: 0 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <MonetizationOn sx={{ color: 'primary.main', fontSize: 32, mr: 1 }} />
+              <Typography variant="h6" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
+                Currency Converter
               </Typography>
             </Box>
-            <Typography variant="body2" color="text.secondary">
-              Last updated: {liborRate.lastUpdate}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Convert between currencies using live rates
             </Typography>
-          </Box>
-        </Alert>
-
-        {/* Search and Filter */}
-        <Card sx={{ mb: 4 }} className="card-elevated">
-          <CardContent sx={{ pt: 3 }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-              <TextField
-                fullWidth
-                placeholder="Search currencies by code or name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Button variant="outlined" startIcon={<Filter />}>
-                Filter
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* Exchange Rates Table */}
-        <Card className="card-elevated">
-          <CardContent sx={{ p: 0 }}>
-            <Box sx={{ p: 3, pb: 2 }}>
-              <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold' }}>
-                Exchange Rates (USD Base)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Rates are updated in real-time
-              </Typography>
-            </Box>
-            <Divider />
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'background.default' }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Currency</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Rate</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Change</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Change %</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Action</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredCurrencies.map((currency) => (
-                    <TableRow 
-                      key={currency.code}
-                      sx={{ 
-                        '&:hover': { bgcolor: 'action.hover' },
-                        ...(currency.isBase && { bgcolor: 'primary.50' })
-                      }}
-                    >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            {currency.symbol}
-                          </Typography>
-                          <Box>
-                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                              {currency.name}
-                            </Typography>
-                            {currency.isBase && (
-                              <Chip 
-                                label="Base" 
-                                size="small" 
-                                color="primary" 
-                                variant="outlined"
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                          {currency.code}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          {currency.rate.toFixed(4)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {currency.change !== 0 && (
-                            currency.change > 0 ? <TrendingUpIcon color="success" /> : <TrendingDownIcon color="error" />
-                          )}
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 'bold',
-                              color: currency.change > 0 ? 'success.main' : currency.change < 0 ? 'error.main' : 'text.primary'
-                            }}
-                          >
-                            {currency.change > 0 ? '+' : ''}{currency.change.toFixed(4)}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={currency.changePercent > 0 ? <TrendingUp /> : <TrendingDown />}
-                          label={`${currency.changePercent > 0 ? '+' : ''}${currency.changePercent.toFixed(2)}%`}
-                          color={currency.changePercent > 0 ? "success" : currency.changePercent < 0 ? "error" : "default"}
-                          size="small"
-                          variant={currency.changePercent === 0 ? "outlined" : "filled"}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <IconButton 
-                          onClick={() => handleAddToWishlist(currency)}
-                          color={isInWishlist(currency.code) ? "error" : "default"}
-                          sx={{ 
-                            '&:hover': { 
-                              transform: 'scale(1.1)',
-                              transition: 'transform 0.2s ease'
-                            }
-                          }}
-                        >
-                          {isInWishlist(currency.code) ? <Favorite /> : <FavoriteBorder />}
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
+            <Grid container spacing={2} alignItems="center" justifyContent="center">
+              <Grid item xs={12} sm={5}>
+                <TextField
+                  label="From"
+                  type="number"
+                  value={fromAmount}
+                  onChange={e => setFromAmount(Number(e.target.value))}
+                  fullWidth
+                  InputProps={{
+                    endAdornment: <span style={{ fontWeight: 700, fontSize: 18 }}>{fromCurrency}</span>,
+                    sx: { fontSize: 20, borderRadius: 2, bgcolor: 'background.default' }
+                  }}
+                  sx={{
+                    '& .MuiInputBase-root': { fontSize: 20, borderRadius: 2, bgcolor: 'background.default' },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={2} sx={{ textAlign: 'center', position: 'relative' }}>
+                <IconButton
+                  onClick={handleSwap}
+                  size="large"
+                  sx={{
+                    mt: { xs: 1, sm: 0 },
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    border: '2px solid',
+                    borderColor: 'primary.dark',
+                    boxShadow: 3,
+                    '&:hover': { bgcolor: 'primary.dark', color: 'white', transform: 'rotate(90deg)', transition: '0.2s' },
+                    width: 48, height: 48
+                  }}
+                >
+                  <SwapHoriz fontSize="medium" />
+                </IconButton>
+              </Grid>
+              <Grid item xs={12} sm={5}>
+                <TextField
+                  label="To"
+                  type="number"
+                  value={toAmount}
+                  fullWidth
+                  InputProps={{
+                    endAdornment: <span style={{ fontWeight: 700, fontSize: 18 }}>{toCurrency}</span>,
+                    sx: { fontSize: 20, borderRadius: 2, bgcolor: 'background.default' }
+                  }}
+                  sx={{
+                    '& .MuiInputBase-root': { fontSize: 20, borderRadius: 2, bgcolor: 'background.default' },
+                  }}
+                  disabled
+                />
+              </Grid>
+              <Grid item xs={12} sm={5}>
+                <TextField
+                  select
+                  label="From Currency"
+                  value={fromCurrency}
+                  onChange={e => setFromCurrency(e.target.value)}
+                  fullWidth
+                  SelectProps={{ native: true }}
+                  sx={{ mt: 2, borderRadius: 2, bgcolor: 'background.default' }}
+                >
+                  {currencyData.map(c => (
+                    <option key={c.code} value={c.code}>{c.code} - {c.name}</option>
                   ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' }, mx: 'auto', height: 48, borderColor: 'grey.800' }} />
+              </Grid>
+              <Grid item xs={12} sm={5}>
+                <TextField
+                  select
+                  label="To Currency"
+                  value={toCurrency}
+                  onChange={e => setToCurrency(e.target.value)}
+                  fullWidth
+                  SelectProps={{ native: true }}
+                  sx={{ mt: 2, borderRadius: 2, bgcolor: 'background.default' }}
+                >
+                  {currencyData.map(c => (
+                    <option key={c.code} value={c.code}>{c.code} - {c.name}</option>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+            <Box sx={{ mt: 3, color: 'primary.main', fontWeight: 'bold', fontSize: 16, textAlign: 'center', letterSpacing: 1 }}>
+              1 {fromCurrency} = {rate.toFixed(4)} {toCurrency}
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                • Rate updated {lastUpdated}
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
 
-        {/* Currency Cards for Mobile */}
-        <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 4 }}>
-          <Typography variant="h6" component="h3" sx={{ mb: 3, fontWeight: 'bold' }}>
-            Mobile View
-          </Typography>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 2 
-          }}>
-            {filteredCurrencies.map((currency) => (
-              <Card key={currency.code} className="card-elevated">
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>
-                        {currency.symbol} {currency.code}
+        {/* Live Exchange Rates */}
+        <Card sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: 3 }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Live Exchange Rates
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Real-time currency pair rates
+            </Typography>
+            <Grid container spacing={2}>
+              {currencyPairs.map(({ pair, base, quote }) => {
+                const rate = getPairRate(base, quote);
+                const change = getPairChange(base, quote);
+                const isUp = change >= 0;
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={pair}>
+                    <Box sx={{
+                      bgcolor: 'background.default',
+                      borderRadius: 2,
+                      p: 2,
+                      boxShadow: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                      minHeight: 100
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{pair}</Typography>
+                        <Chip
+                          label={isUp ? `+${change.toFixed(4)}` : change.toFixed(4)}
+                          color={isUp ? 'success' : 'error'}
+                          size="small"
+                          icon={isUp ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />}
+                          sx={{ ml: 1 }}
+                        />
+                      </Box>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: isUp ? 'success.main' : 'error.main' }}>
+                        {rate ? rate.toFixed(4) : '--'}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {currency.name}
+                      <Typography variant="caption" color="text.secondary">
+                        {base} to {quote}
                       </Typography>
                     </Box>
-                    <IconButton 
-                      onClick={() => handleAddToWishlist(currency)}
-                      color={isInWishlist(currency.code) ? "error" : "default"}
-                      size="small"
-                    >
-                      {isInWishlist(currency.code) ? <Favorite /> : <FavoriteBorder />}
-                    </IconButton>
-                  </Box>
-                  <Typography variant="h5" component="p" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {currency.rate.toFixed(4)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Chip
-                      icon={currency.changePercent > 0 ? <TrendingUp /> : <TrendingDown />}
-                      label={`${currency.changePercent > 0 ? '+' : ''}${currency.changePercent.toFixed(2)}%`}
-                      color={currency.changePercent > 0 ? "success" : currency.changePercent < 0 ? "error" : "default"}
-                      size="small"
-                    />
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: currency.change > 0 ? 'success.main' : currency.change < 0 ? 'error.main' : 'text.primary'
-                      }}
-                    >
-                      {currency.change > 0 ? '+' : ''}{currency.change.toFixed(4)}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        </Box>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </CardContent>
+        </Card>
       </Container>
     </Box>
   );

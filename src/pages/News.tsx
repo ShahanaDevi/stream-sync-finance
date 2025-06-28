@@ -3,255 +3,242 @@ import {
   Card, 
   CardContent, 
   Typography, 
-  Button, 
-  Chip, 
-  TextField, 
   Box, 
   Container, 
   Grid, 
-  Tabs, 
-  Tab, 
+  Button,
+  Chip,
   IconButton,
-  InputAdornment
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Tooltip,
+  TextField
 } from '@mui/material';
 import { 
-  Public, 
-  Search, 
-  AccessTime, 
-  TrendingUp, 
-  Business, 
-  FlashOn, 
-  Star 
+  Star,
+  StarBorder,
+  NotificationsNone,
+  OpenInNew,
+  Close,
+  Search
 } from '@mui/icons-material';
-import Navigation from "@/components/Navigation";
-import { useWishlist } from "@/contexts/WishlistContext";
+import Navigation from '@/components/Navigation';
+
+const categories = [
+  { key: 'general', label: 'General' },
+  { key: 'forex', label: 'Forex' },
+  { key: 'crypto', label: 'Crypto' },
+  { key: 'merger', label: 'Merger' },
+];
+
+// Mock news data (replace with backend fetch)
+const newsList = [
+  {
+    category: 'crypto',
+    datetime: 1596589501,
+    headline: 'Square surges after reporting 64% jump in revenue, more customers using Cash App',
+    id: 5085164,
+    image: 'https://image.cnbcfm.com/api/v1/image/105569283-1542050972462rts25mct.jpg?v=1542051069',
+    related: '',
+    source: 'CNBC',
+    summary: 'Shares of Square soared on Tuesday evening after posting better-than-expected quarterly results and strong growth in its consumer payments app.',
+    url: 'https://www.cnbc.com/2020/08/04/square-sq-earnings-q2-2020.html'
+  },
+  {
+    category: 'forex',
+    datetime: 1718000000,
+    headline: 'Federal Reserve Signals Potential Rate Cut in Q3 2025',
+    id: 5085165,
+    image: 'https://images.unsplash.com/photo-1517971071642-34a2d3eccb5e',
+    related: '',
+    source: 'Reuters',
+    summary: 'Fed officials hint at monetary policy adjustments amid disruptive economic conditions.',
+    url: 'https://www.reuters.com/markets/us/fed-signals-rate-cut-2025.html'
+  },
+  {
+    category: 'merger',
+    datetime: 1718001000,
+    headline: 'Major Banks Announce Historic Merger',
+    id: 5085166,
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+    related: '',
+    source: 'Bloomberg',
+    summary: "Two of the world's largest banks have agreed to merge, creating a new financial powerhouse.",
+    url: 'https://www.bloomberg.com/merger-news'
+  },
+  {
+    category: 'general',
+    datetime: 1718002000,
+    headline: 'Global Markets Rally on Economic Recovery Hopes',
+    id: 5085167,
+    image: 'https://images.unsplash.com/photo-1464983953574-0892a716854b',
+    related: '',
+    source: 'Financial Times',
+    summary: 'Stock markets around the world rallied today as investors grew optimistic about economic recovery.',
+    url: 'https://www.ft.com/global-markets'
+  }
+];
+
+function timeAgo(unix) {
+  const now = Date.now() / 1000;
+  const diff = Math.floor((now - unix) / 60);
+  if (diff < 1) return 'just now';
+  if (diff < 60) return `${diff} minutes ago`;
+  const hours = Math.floor(diff / 60);
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} days ago`;
+}
 
 const News = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [tabValue, setTabValue] = useState(0);
-  const { addToWishlist, isInWishlist } = useWishlist();
+  const [selected, setSelected] = useState(null);
+  const [favorite, setFavorite] = useState({});
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('general');
 
-  const newsData = [
-    {
-      id: 1,
-      title: "Federal Reserve announces interest rate decision amid economic uncertainty",
-      summary: "The Federal Reserve has decided to maintain current interest rates as inflation concerns persist...",
-      category: "Economics",
-      timestamp: "2 hours ago",
-      source: "Financial Times",
-      trending: true
-    },
-    {
-      id: 2,
-      title: "Tech stocks surge amid breakthrough in artificial intelligence sector",
-      summary: "Major technology companies see significant gains following announcement of new AI capabilities...",
-      category: "Technology",
-      timestamp: "4 hours ago",
-      source: "Tech Daily",
-      trending: true
-    },
-    {
-      id: 3,
-      title: "Oil prices rise on supply chain concerns in Middle East",
-      summary: "Crude oil futures climb higher as geopolitical tensions affect supply chains...",
-      category: "Commodities",
-      timestamp: "6 hours ago",
-      source: "Energy News",
-      trending: false
-    },
-    {
-      id: 4,
-      title: "Cryptocurrency market shows strong recovery after recent volatility",
-      summary: "Bitcoin and other major cryptocurrencies rebound strongly following last week's decline...",
-      category: "Crypto",
-      timestamp: "8 hours ago",
-      source: "Crypto Watch",
-      trending: false
-    },
-    {
-      id: 5,
-      title: "Banking sector reports strong quarterly earnings",
-      summary: "Major banks exceed analyst expectations with robust profit margins...",
-      category: "Banking",
-      timestamp: "1 day ago",
-      source: "Banking Weekly",
-      trending: false
-    },
-    {
-      id: 6,
-      title: "Renewable energy stocks gain momentum on new government policies",
-      summary: "Clean energy companies see increased investor interest following policy announcements...",
-      category: "Energy",
-      timestamp: "1 day ago",
-      source: "Green Finance",
-      trending: false
-    }
-  ];
-
-  const categories = ["All", "Technology", "Economics", "Banking", "Crypto", "Energy", "Commodities"];
-  const [selectedCategory, setSelectedCategory] = useState("All");
-
-  const filteredNews = newsData.filter(article => {
-    const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.summary.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || article.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  // Filter news by search and category
+  const filteredNews = newsList.filter(news => {
+    const matchesCategory = selectedCategory === 'general' ? true : news.category === selectedCategory;
+    const matchesSearch =
+      news.headline.toLowerCase().includes(search.toLowerCase()) ||
+      news.summary.toLowerCase().includes(search.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
-
-  const trendingNews = newsData.filter(article => article.trending);
-
-  const handleAddToWishlist = (article, e) => {
-    e.stopPropagation();
-    addToWishlist('news', article);
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "Technology": return <FlashOn />;
-      case "Banking": return <Business />;
-      case "Economics": return <TrendingUp />;
-      default: return <Public />;
-    }
-  };
-
-  const renderNewsCard = (article) => (
-    <Card key={article.id} sx={{ height: '100%', '&:hover': { boxShadow: 4 }, cursor: 'pointer' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Chip
-            icon={getCategoryIcon(article.category)}
-            label={article.category}
-            variant="outlined"
-            size="small"
-          />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {article.trending && (
-              <Chip
-                icon={<TrendingUp />}
-                label="Trending"
-                color="error"
-                size="small"
-              />
-            )}
-            <IconButton 
-              size="small"
-              onClick={(e) => handleAddToWishlist(article, e)}
-              color={isInWishlist(article.id.toString()) ? "primary" : "default"}
-            >
-              <Star sx={{ fill: isInWishlist(article.id.toString()) ? 'currentColor' : 'none' }} />
-            </IconButton>
-          </Box>
-        </Box>
-        <Typography variant="h6" component="h3" sx={{ mb: 1, lineHeight: 1.3 }}>
-          {article.title}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'text.secondary' }}>
-          <AccessTime sx={{ fontSize: 16, mr: 0.5 }} />
-          <Typography variant="body2">
-            {article.timestamp} • {article.source}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {article.summary}
-        </Typography>
-        <Button variant="text" size="small" sx={{ px: 0 }}>
-          Read more →
-        </Button>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Navigation />
-      
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Market News
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3, color: 'primary.main' }}>
+          News & Insights
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Stay updated with the latest financial news and market insights
-          </Typography>
+        {/* Category Buttons & Search */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {categories.map(cat => (
+              <Button
+                key={cat.key}
+                variant={selectedCategory === cat.key ? 'contained' : 'outlined'}
+                color={selectedCategory === cat.key ? 'primary' : 'inherit'}
+                onClick={() => setSelectedCategory(cat.key)}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
+              >
+                {cat.label}
+              </Button>
+            ))}
         </Box>
-
-        {/* Search and Categories */}
-        <Card sx={{ mb: 4 }}>
-          <CardContent sx={{ pt: 3 }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3 }}>
+          <Box sx={{ flex: 1, minWidth: 200, display: 'flex', justifyContent: 'flex-end' }}>
+            <Box sx={{ position: 'relative', width: { xs: '100%', sm: 260 } }}>
               <TextField
-                fullWidth
-                placeholder="Search news articles..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
+                placeholder="Search news..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
+                  startAdornment: <Search sx={{ color: 'grey.500', mr: 1 }} />,
+                  sx: { borderRadius: 2, bgcolor: 'background.paper' }
                 }}
+                fullWidth
               />
             </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "contained" : "outlined"}
-                  size="small"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
+          </Box>
+        </Box>
+        <Grid container spacing={3}>
+          {filteredNews.length === 0 ? (
+            <Grid item xs={12}>
+              <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 6 }}>
+                No news found for your search or category.
+              </Typography>
+            </Grid>
+          ) : (
+            filteredNews.map(news => (
+              <Grid item xs={12} sm={6} key={news.id}>
+                <Card sx={{ bgcolor: 'background.paper', borderRadius: 3, boxShadow: 4, cursor: 'pointer', transition: '0.2s', '&:hover': { boxShadow: 8 } }} onClick={() => setSelected(news)}>
+                  <Box sx={{ height: 180, background: `url(${news.image}) center/cover`, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
+                  <CardContent>
+                    <Chip label={news.category.replace(/\b\w/g, l => l.toUpperCase())} size="small" sx={{ mb: 1, bgcolor: 'grey.900', color: 'grey.100', fontWeight: 600 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, minHeight: 48 }}>
+                      {news.headline}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: 40 }}>
+                      {news.summary.length > 80 ? news.summary.slice(0, 80) + '...' : news.summary}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {news.source} &bull; {timeAgo(news.datetime)}
+                      </Typography>
+                      <Button size="small" variant="text" sx={{ fontWeight: 600 }} onClick={e => { e.stopPropagation(); setSelected(news); }}>
+                        Read More
                 </Button>
-              ))}
             </Box>
           </CardContent>
         </Card>
-
-        {/* News Content */}
-        <Box sx={{ mb: 4 }}>
-          <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
-            <Tab label="All News" />
-            <Tab label="Trending" />
-          </Tabs>
-
-          {tabValue === 0 && (
-            <Grid container spacing={3}>
-              {filteredNews.map((article) => (
-                <Grid item xs={12} lg={6} key={article.id}>
-                  {renderNewsCard(article)}
                 </Grid>
-              ))}
-            </Grid>
+            ))
           )}
+        </Grid>
 
-          {tabValue === 1 && (
-            <Box sx={{ space: 3 }}>
-              <Card sx={{ mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" component="h2" sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'error.main' }}>
-                    <TrendingUp sx={{ mr: 1 }} />
-                    Trending News
+        {/* News Detail Modal */}
+        <Dialog open={!!selected} onClose={() => setSelected(null)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4, bgcolor: 'background.paper', boxShadow: 8 } }}>
+          {selected && (
+            <>
+              <Box sx={{ position: 'relative' }}>
+                <img src={selected.image} alt={selected.headline} style={{ width: '100%', height: 260, objectFit: 'cover', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
+                <IconButton onClick={() => setSelected(null)} sx={{ position: 'absolute', top: 12, right: 12, bgcolor: 'background.default', color: 'grey.300', '&:hover': { bgcolor: 'grey.900', color: 'white' } }}>
+                  <Close />
+                </IconButton>
+              </Box>
+              <DialogContent sx={{ p: { xs: 2, sm: 4 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Chip label={selected.category.replace(/\b\w/g, l => l.toUpperCase())} size="small" sx={{ bgcolor: 'grey.900', color: 'grey.100', fontWeight: 600 }} />
+                  <Box>
+                    <Tooltip title={favorite[selected.id] ? 'Remove from favorites' : 'Add to favorites'}>
+                      <IconButton onClick={() => setFavorite(f => ({ ...f, [selected.id]: !f[selected.id] }))} sx={{ color: favorite[selected.id] ? 'yellow.500' : 'grey.400' }}>
+                        {favorite[selected.id] ? <Star /> : <StarBorder />}
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Notify me">
+                      <IconButton sx={{ color: 'grey.400' }}>
+                        <NotificationsNone />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
+                  {selected.headline}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                  {selected.summary}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Most popular and trending financial news articles
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  sx={{ mb: 2 }}
+                  onClick={() => {
+                    if (window.marketNowChatbotSummarize) {
+                      window.marketNowChatbotSummarize({ headline: selected.headline, summary: selected.summary });
+                    }
+                  }}
+                >
+                  Ask AI to Summarize
+                </Button>
+                <Divider sx={{ mb: 2 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {selected.source} &bull; {timeAgo(selected.datetime)}
                   </Typography>
-                  <Grid container spacing={2}>
-                    {trendingNews.map((article) => (
-                      <Grid item xs={12} sm={6} key={article.id}>
-                        {renderNewsCard(article)}
-                      </Grid>
-                    ))}
-                  </Grid>
-                </CardContent>
-              </Card>
+                  <Tooltip title="Open original news">
+                    <IconButton href={selected.url} target="_blank" rel="noopener noreferrer" sx={{ color: 'grey.400' }}>
+                      <OpenInNew />
+                    </IconButton>
+                  </Tooltip>
             </Box>
+              </DialogContent>
+            </>
           )}
-        </Box>
+        </Dialog>
       </Container>
     </Box>
   );
